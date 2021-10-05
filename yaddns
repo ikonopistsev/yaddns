@@ -1,0 +1,46 @@
+#!/bin/sh
+
+set -e
+
+check_yarc() {
+    RC=$(jq -r ".page.domains.error" $1)
+    if [ "$RC" != "ok" ]; then
+	logger -sit "error: $RC"
+	exit 1
+    fi
+}
+
+TOKEN='write_token_here'
+DOMAIN='mydomain.com'
+URL_GET_DNS='https://pddimp.yandex.ru/nsapi/get_domain_records.xml?token='$TOKEN'&domain='$DOMAIN
+
+CURIP=$(curl -s https://api.myip.com|jq -r .ip)
+logger -sit "$DOMAIN" "ip: $CURIP"
+
+TEMPFILE=$(mktemp)
+logger -sit "$DOMAIN" "load domain: $DOMAIN"
+curl -s $URL_GET_DNS | xml2json > $TEMPFILE
+check_yarc $TEMPFILE
+
+for SUBDOMAIN in "subdomain1" "subdomain2"
+do
+    DOMAIN_FULL=$SUBDOMAIN.$DOMAIN
+    JSON=$(jq -r ".page.domains.domain.response.record[]|select(.type==\"A\")|select(.domain==\"$DOMAIN_FULL\")" $TEMPFILE) #"
+    #logger -sit "$DOMAIN" "$JSON"
+    IP=$(echo $JSON|jq -r '.["$t"]')
+    ID=$(echo $JSON|jq -r ".id")
+    SUB=$(echo $JSON|jq -r ".subdomain")
+    TTL=$(echo $JSON|jq -r ".ttl")
+
+    if [ "$IP" != "$CURIP" ]; then
+	logger -sit "$DOMAIN" "$DOMAIN_FULL $IP change to $CURIP"
+	curl -s 'https://pddimp.yandex.ru/nsapi/edit_a_record.xml?token='$TOKEN'&domain='$DOMAIN'&subdomain='$SUB'&record_id='$ID'&content='$CURIP'&ttl=300'| xml2json > $TEMPFILE
+	check_yarc $TEMPFILE
+    else
+	logger -sit "$DOMAIN" "$DOMAIN_FULL $IP == $CURIP"
+    fi
+done
+
+rm $TEMPFILE
+
+exit 0
