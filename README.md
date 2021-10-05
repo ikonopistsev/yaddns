@@ -1,0 +1,2 @@
+# yaddns
+DDNS Yandex
