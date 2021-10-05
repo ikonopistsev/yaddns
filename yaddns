@@ -15,10 +15,10 @@ DOMAIN='mydomain.com'
 URL_GET_DNS='https://pddimp.yandex.ru/nsapi/get_domain_records.xml?token='$TOKEN'&domain='$DOMAIN
 
 CURIP=$(curl -s https://api.myip.com|jq -r .ip)
-logger -sit "$DOMAIN" "ip: $CURIP"
+#logger -sit "$DOMAIN" "ip: $CURIP"
 
 TEMPFILE=$(mktemp)
-logger -sit "$DOMAIN" "load domain: $DOMAIN"
+#logger -sit "$DOMAIN" "load domain: $DOMAIN"
 curl -s $URL_GET_DNS | xml2json > $TEMPFILE
 check_yarc $TEMPFILE
 
@@ -36,8 +36,8 @@ do
 	logger -sit "$DOMAIN" "$DOMAIN_FULL $IP change to $CURIP"
 	curl -s 'https://pddimp.yandex.ru/nsapi/edit_a_record.xml?token='$TOKEN'&domain='$DOMAIN'&subdomain='$SUB'&record_id='$ID'&content='$CURIP'&ttl=300'| xml2json > $TEMPFILE
 	check_yarc $TEMPFILE
-    else
-	logger -sit "$DOMAIN" "$DOMAIN_FULL $IP == $CURIP"
+    #else
+	#logger -sit "$DOMAIN" "$DOMAIN_FULL $IP == $CURIP"
     fi
 done
 
